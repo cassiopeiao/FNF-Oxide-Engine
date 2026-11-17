@@ -1,6 +1,10 @@
 [versions]
 agp = "8.12.0"
-gamesActivity = "2.0.2"
+# GameActivity calls JNI RegisterNatives at startup: the Java method
+# signatures must match the C++ that android-activity 0.6.1 compiles into
+# libfnf_oxide_engine.so. 2.0.2 has an older onTouchEventNative and aborts with
+# "RegisterNatives failed". 4.4.0 is the version android-activity documents.
+gamesActivity = "4.4.0"
 appcompat = "1.7.0"
 
 [libraries]
