@@ -4529,7 +4529,7 @@ dependencies = [
 
 [[package]]
 name = "oesdk"
-version = "0.1.0"
+version = "0.0.1"
 
 [[package]]
 name = "offset-allocator"
