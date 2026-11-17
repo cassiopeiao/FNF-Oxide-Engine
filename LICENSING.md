@@ -27,7 +27,7 @@ against. It is dual-licensed under MIT or Apache-2.0, at your option:
 
 `crates/oesdk/Cargo.toml` declares its own `license = "MIT OR Apache-2.0"` and
 does **not** inherit the workspace license. It must stay free of engine
-dependencies; `tools/check-sdk-isolation.sh` fails the build if `oesdk` ever
+dependencies; `crates/oesdk/scripts/check-sdk-isolation.sh` fails the build if `oesdk` ever
 gains a dependency on `oxide_*`, `fnf_oxide_engine` or `bevy_animate_atlas`. The intent is that the SDK can be
 extracted, published, or vendored into a third-party mod without pulling the
 AGPL obligations of the engine along with it.

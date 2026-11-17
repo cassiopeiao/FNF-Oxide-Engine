@@ -90,7 +90,7 @@ engine (AGPL) to crates.io.
 be contaminated by the workspace's AGPL. The guard enforces it:
 
 ```bash
-../../tools/check-sdk-isolation.sh
+./scripts/check-sdk-isolation.sh
 # ok: oesdk dependency graph is clean
 #   oesdk v0.1.0
 ```
