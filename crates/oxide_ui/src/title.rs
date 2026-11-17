@@ -108,7 +108,15 @@ pub fn boot_tick(
     let art_ready = atlases.get(&assets.title_text).is_some()
         && atlases.get(&assets.logo_bumpin).is_some()
         && atlases.get(&assets.gf_atlas).is_some();
-    if (fonts_ready && art_ready) || *waited > 20.0 {
+    if fonts_ready && art_ready {
+        next.set(AppState::Title);
+    } else if *waited > 20.0 {
+        // Usually a wrong asset root: every handle stays in the "loading"
+        // state forever instead of erroring loudly.
+        error!(
+            "assets did not load within 20s (fonts={fonts_ready}, art={art_ready}); \
+             check the asset root printed at startup"
+        );
         next.set(AppState::Title);
     }
 }

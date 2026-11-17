@@ -12,26 +12,68 @@ use oxide_game::GamePlugin;
 use oxide_mod_runtime::ModPlugin;
 use oxide_ui::UiPlugin;
 
-/// Bevy resolves `assets/` next to the executable by default, which is wrong
-/// for `cargo run` (the binary lives in `target/<profile>/`). In development we
-/// therefore point at the crate's own asset directory; packaged builds keep the
-/// platform default so Android/iOS read the files bundled with the app.
+/// Resolve the asset directory at runtime.
+///
+/// No build-machine path may be baked into the binary: `CARGO_MANIFEST_DIR` is
+/// an absolute path from the machine that compiled the crate, and a friend's
+/// PC (or a phone) has no such directory. Instead we look for the assets where
+/// they can actually be, relative to the executable or the working directory:
+///
+/// 1. `FNF_OXIDE_ASSETS` — explicit override for tests and portable builds.
+/// 2. `<exe dir>/assets`, then up to five ancestors — this covers
+///    `target/debug/OxideEngine` (walks up to the crate root) as well as a
+///    packaged build that ships `assets/` next to the binary.
+/// 3. `./assets` — relative to the current directory (`cargo run` from the
+///    crate root).
+/// 4. `assets` — Bevy's default: next to the executable on desktop, through
+///    `AAssetManager` on Android and the app bundle on iOS.
 fn asset_root() -> String {
+    if let Some(path) = std::env::var_os("FNF_OXIDE_ASSETS") {
+        return path.to_string_lossy().into_owned();
+    }
+
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {
-        if let Ok(path) = std::env::var("FNF_OXIDE_ASSETS") {
-            return path;
+        use std::path::Path;
+
+        fn has_assets(dir: &Path) -> bool {
+            // A single cheap marker is enough; the whole tree is 1.3 GB.
+            dir.join("fonts").join("vcr.ttf").is_file()
         }
-        concat!(env!("CARGO_MANIFEST_DIR"), "/assets").to_owned()
+
+        if let Ok(exe) = std::env::current_exe() {
+            let mut dir = exe.parent().map(Path::to_path_buf);
+            while let Some(current) = dir {
+                let candidate = current.join("assets");
+                if has_assets(&candidate) {
+                    return candidate.to_string_lossy().into_owned();
+                }
+                dir = current.parent().map(Path::to_path_buf);
+            }
+        }
+
+        if has_assets(Path::new("assets")) {
+            return "assets".to_owned();
+        }
     }
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    {
-        "assets".to_owned()
-    }
+
+    "assets".to_owned()
+}
+
+/// The resolved asset directory, logged once `LogPlugin` is up (an `info!`
+/// before `App::new` would be dropped: tracing is not initialised yet).
+#[derive(Resource, Clone)]
+struct AssetRoot(String);
+
+fn log_asset_root(root: Res<AssetRoot>) {
+    info!("asset root: {}", root.0);
 }
 
 pub fn run() {
+    let assets = asset_root();
+
     App::new()
+        .insert_resource(AssetRoot(assets.clone()))
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
@@ -45,7 +87,7 @@ pub fn run() {
                     ..default()
                 })
                 .set(AssetPlugin {
-                    file_path: asset_root(),
+                    file_path: assets,
                     ..default()
                 })
                 .set(ImagePlugin::default_nearest()),
@@ -53,6 +95,7 @@ pub fn run() {
         .insert_resource(ClearColor(BG))
         .init_state::<AppState>()
         .add_plugins((CorePlugin, OxideDataPlugin, GamePlugin, UiPlugin, ModPlugin))
+        .add_systems(Startup, log_asset_root)
         .add_systems(Update, (debug_start_state, debug_screenshot))
         .run();
 }
