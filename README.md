@@ -127,7 +127,9 @@ rust/FNF-Oxide-Engine/
 
 - Android SDK：compileSdk / targetSdk 36，minSdk 26
 - NDK：`29.0.14206865`（或修改 `android/app/build.gradle` 中的 `ndkVersion`）
-- JDK 17+（Gradle 8.13 需要）
+- JDK **17–23**（Gradle 8.13 的运行上限是 23）。JDK 24/25 会在编译构建脚本时报
+  `BUG! exception in phase 'semantic analysis' ... Unsupported class file major version 69`，
+  因为 69 = Java 25 的 class 文件版本。
 - Rust：`rustup target add aarch64-linux-android`
 - 可选：`cargo install cargo-ndk`（本工程自带 Gradle → Cargo 任务，不强制）
 
@@ -135,7 +137,16 @@ rust/FNF-Oxide-Engine/
 
 ```bash
 cd rust/FNF-Oxide-Engine/android
-export ANDROID_HOME="$HOME/Android/Sdk"   # 或 local.properties: sdk.dir=...
+./build.sh :app:assembleDebug
+```
+
+`build.sh` 会挑一个 JDK 17–23（优先 `JAVA_HOME`，其次仓库旁的 `.toolchain/jdk21`、
+系统 JDK 21/17），并设置 `ANDROID_HOME`、本地 `GRADLE_USER_HOME` / `CARGO_HOME`，
+然后转交给 `./gradlew`。想手动调用时：
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64   # 必须是 JDK，不能是 JRE
+export ANDROID_HOME="$HOME/Android/Sdk"               # 或 local.properties: sdk.dir=...
 ./gradlew :app:assembleDebug
 ```
 
