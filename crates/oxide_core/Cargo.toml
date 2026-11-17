@@ -1,0 +1,16 @@
+[package]
+name = "oxide_core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Core services for FNF: Oxide Engine"
+publish = false
+
+[dependencies]
+bevy.workspace = true
+bevy_animate_atlas = { path = "../bevy_animate_atlas" }
+serde.workspace = true
+serde_json.workspace = true
+quick-xml.workspace = true
+image.workspace = true

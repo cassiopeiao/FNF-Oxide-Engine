@@ -1,0 +1,73 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/bevy_animate_atlas",
+    "crates/oesdk",
+    "crates/oxide_core",
+    "crates/oxide_data",
+    "crates/oxide_game",
+    "crates/oxide_mod_runtime",
+    "crates/oxide_server",
+    "crates/oxide_ui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "AGPL-3.0-or-later"
+
+[workspace.dependencies]
+bevy = { version = "0.20.1", default-features = false, features = [
+    "2d",
+    "ui",
+    "audio",
+    "vorbis",
+    "png",
+    "debug",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+quick-xml = "0.37"
+image = { version = "0.25", default-features = false, features = ["png"] }
+oesdk = { path = "crates/oesdk" }
+
+[package]
+name = "fnf-oxide-engine"
+publish = false
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "fnf_oxide_engine"
+crate-type = ["lib", "cdylib"]
+
+[[bin]]
+name = "OxideEngine"
+path = "src/main.rs"
+
+[dependencies]
+bevy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+oxide_core = { path = "crates/oxide_core" }
+oxide_mod_runtime = { path = "crates/oxide_mod_runtime" }
+oxide_data = { path = "crates/oxide_data" }
+oxide_game = { path = "crates/oxide_game" }
+oxide_ui = { path = "crates/oxide_ui" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+bevy = { workspace = true, features = ["android-game-activity"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = "symbols"

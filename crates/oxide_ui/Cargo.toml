@@ -1,0 +1,16 @@
+[package]
+name = "oxide_ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Menus and screens for FNF: Oxide Engine"
+publish = false
+
+[dependencies]
+bevy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+oxide_core = { path = "../oxide_core" }
+oxide_data = { path = "../oxide_data" }
+oxide_game = { path = "../oxide_game" }

@@ -1,0 +1,16 @@
+[package]
+name = "oxide_data"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Chart model and built-in song catalog for FNF: Oxide Engine"
+publish = false
+
+[dependencies]
+bevy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+serde_json.workspace = true

@@ -1,0 +1,34 @@
+[package]
+name = "oesdk"
+version = "0.1.0-dev"
+# Pinned explicitly: this crate is published on its own, so it must not
+# inherit the engine's MSRV.
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Mod SDK + CLI for FNF: Oxide Engine (WIT component mods)"
+repository = "https://github.com/FunkinRustUp/FNF-Oxide-Engine"
+keywords = ["fnf", "modding", "wasm", "wit"]
+categories = ["game-development"]
+documentation = "https://docs.rs/oesdk"
+readme = "README.md"
+# Keep the published package to the SDK alone: no engine sources, no assets.
+include = ["src/**", "wit/**", "examples/**", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
+
+[lib]
+name = "oesdk"
+path = "src/lib.rs"
+
+[[bin]]
+name = "oesdk"
+path = "src/bin/oesdk.rs"
+
+[features]
+default = []
+# Enable the wit-bindgen guest glue when compiling a mod to a wasm component.
+guest = []
+
+[dependencies]
+
+[package.metadata.docs.rs]
+all-features = true

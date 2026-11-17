@@ -1,0 +1,95 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace 'com.oxide.engine'
+    compileSdk 36
+    buildToolsVersion '36.1.0'
+    ndkVersion '29.0.14206865'
+
+    defaultConfig {
+        applicationId 'com.oxide.engine'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+    }
+
+    sourceSets {
+        main {
+            // The engine's asset root is shared with the desktop build.
+            assets.srcDirs += [file('../../assets')]
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig false
+    }
+}
+
+configurations.configureEach {
+    // androidx.games:games-activity pulls the old split Kotlin JDK7/JDK8
+    // artifacts, which duplicate classes that were merged into kotlin-stdlib 1.8+.
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+dependencies {
+    implementation libs.games.activity
+    implementation libs.appcompat
+}
+
+def rustTarget = 'aarch64-linux-android'
+def rustLibName = 'libfnf_oxide_engine.so'
+
+// Build the Rust cdylib for the device ABI and expose it as a jniLib.
+tasks.register('cargoBuild', Exec) {
+    group = 'rust'
+    description = 'Builds the FNF Oxide Engine Rust library for Android.'
+    workingDir rootProject.file('..')
+
+    def ndkDir = android.ndkDirectory.absolutePath
+    def osName = System.getProperty('os.name').toLowerCase()
+    def hostTag = osName.contains('mac') ? 'darwin-x86_64'
+            : osName.contains('windows') ? 'windows-x86_64'
+            : 'linux-x86_64'
+    def toolchain = "${ndkDir}/toolchains/llvm/prebuilt/${hostTag}/bin"
+    def api = 26
+
+    environment 'CC_aarch64_linux_android', "${toolchain}/aarch64-linux-android${api}-clang"
+    environment 'CXX_aarch64_linux_android', "${toolchain}/aarch64-linux-android${api}-clang++"
+    environment 'AR_aarch64_linux_android', "${toolchain}/llvm-ar"
+    environment 'CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER', "${toolchain}/aarch64-linux-android${api}-clang"
+
+    commandLine System.getenv('CARGO') ?: 'cargo', 'build', '--release', '--target', rustTarget, '--lib'
+}
+
+tasks.register('copyRustLib', Copy) {
+    group = 'rust'
+    description = 'Copies the Rust library into the Android jniLibs directory.'
+    dependsOn 'cargoBuild'
+    from rootProject.file("../target/${rustTarget}/release/${rustLibName}")
+    into file('src/main/jniLibs/arm64-v8a')
+}
+
+tasks.named('preBuild').configure {
+    dependsOn 'copyRustLib'
+}

@@ -1,0 +1,12 @@
+[package]
+name = "bevy_animate_atlas"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+description = "Adobe Animate (Sparrow v2) atlas support for Bevy, vendored and ported to Bevy 0.20."
+repository = "https://github.com/FunkinRustUp/bevy_animate_atlas/"
+publish = false
+
+[dependencies]
+bevy = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,13 @@
+[package]
+publish = false
+name = "oxide_server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+path = "src/main.rs"
+name = "OxideServer"
+
+[dependencies]

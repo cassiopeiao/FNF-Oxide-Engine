@@ -1,0 +1,92 @@
+// The single source of truth for the mod ABI.
+// Rust, C/C++ and TypeScript shells are all generated from this file.
+package fnf:mod@0.1.0;
+
+interface types {
+  record vec2 { x: f32, y: f32 }
+
+  enum side { player, opponent }
+  enum judge { sick, good, bad, shit, miss }
+
+  record character-info {
+    id: u32,
+    name: string,
+    side: side,
+    slot: u8,
+  }
+
+  record note {
+    lane: u8,
+    time-ms: f64,
+    len-ms: f64,
+    player: bool,
+  }
+
+  record hit {
+    note: note,
+    judge: judge,
+    delta-ms: f64,
+    combo: u32,
+    score: u32,
+    acc: f32,
+  }
+}
+
+interface core {
+  use types.{character-info, vec2};
+
+  log: func(level: u8, msg: string);
+  play-state: func() -> tuple<string, string, f32, u32, u32, u32, f32, f32, u32, u8>;
+
+  // Multi-character stages: a side can hold more than one character, which is
+  // what a future versus mode needs.
+  characters: func() -> list<character-info>;
+  character: func(name: string) -> option<u32>;
+  character-position: func(id: u32) -> vec2;
+  set-character-position: func(id: u32, pos: vec2);
+  set-character-opacity: func(id: u32, alpha: f32);
+  set-character-flip: func(id: u32, flip: bool);
+  play-anim: func(id: u32, anim: string);
+}
+
+interface camera {
+  shake: func(intensity: f32, seconds: f32);
+  flash: func(rgba: u32, seconds: f32);
+}
+
+interface sprites {
+  use types.{vec2};
+  spawn: func(asset: string, pos: vec2, layer: i32, alpha: f32) -> u32;
+  despawn: func(id: u32);
+  set-position: func(id: u32, pos: vec2);
+}
+
+interface audio {
+  play: func(asset: string, volume: f32) -> u32;
+  stop: func(id: u32);
+}
+
+interface rng {
+  next: func() -> f32;
+}
+
+interface callbacks {
+  use types.{hit, note};
+
+  on-create: func();
+  on-update: func(dt: f32);
+  on-song-start: func();
+  on-beat: func(beat: u32);
+  on-note-hit: func(hit: hit);
+  on-note-miss: func(note: note);
+  on-song-end: func();
+}
+
+world mod {
+  import core;
+  import camera;
+  import sprites;
+  import audio;
+  import rng;
+  export callbacks;
+}

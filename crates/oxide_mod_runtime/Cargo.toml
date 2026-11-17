@@ -1,0 +1,19 @@
+[package]
+name = "oxide_mod_runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "wasmtime-based mod host for FNF: Oxide Engine"
+publish = false
+
+[dependencies]
+bevy.workspace = true
+serde.workspace = true
+oesdk.workspace = true
+wasmtime = { version = "50.0.2", default-features = false, features = [
+    "std",
+    "runtime",
+    "component-model",
+    "cranelift",
+] }

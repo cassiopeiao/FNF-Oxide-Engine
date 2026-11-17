@@ -22,3 +22,42 @@ rustc-ice-*.txt
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+
+# Added by cargo
+
+/target
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/jniLibs/
+*.apk
+*.aab
+
+# iOS / Xcode
+ios/build/
+ios/DerivedData/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+*.ipa
+.DS_Store
+
+# Local dev screenshots
+/shot-*.png
+
+# Original game assets (~1.3 GB) are copied from haxe/funkin, not versioned here
+/assets/
+/.idea/
+
+# local reference cache / temp captures
+.cache/
+
+# Screenshots are local verification artifacts, not source
+/docs/screenshots/
+
+# Helper scripts kept out of the repo on purpose
+/tools/
