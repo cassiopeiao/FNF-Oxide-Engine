@@ -47,7 +47,7 @@ the block data: `0 = store`, `1 = zstd`, `2 = zstd-chunked`.
   independent zstd frame; `chunk_count` entries follow the block table:
 
 ```
-struct Chunk { raw_len: u32, stored_len: u32, stored_off: u64 }   // 16 B
+struct Chunk { raw_len: u32, stored_len: u32, stored_off: u64 }   // 16 B, stored_off relative to the block's data_off
 ```
 
 The last chunk may be smaller. A reader decodes only the chunks it touches.
@@ -81,9 +81,12 @@ struct Block {              // 40 bytes
   stored_len: u64,
   raw_len:    u64,
   crc32c:     u32,          // of the *raw* bytes
-  reserved:   u32 = 0,
+  chunk_start: u32,         // index into the global chunk table
 }
 ```
+
+`store` is forced below 64 bytes (zstd's frame header costs more than it
+saves) and `zstd-chunked` is chosen for non-text files of 256 KiB or more.
 
 Paths are relative, `/`-separated, NFC, no leading `/`, no `.`/`..` segments,
 no backslashes, and must not collide after case folding on case-insensitive

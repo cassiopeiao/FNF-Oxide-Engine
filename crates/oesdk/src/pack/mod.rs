@@ -38,6 +38,13 @@ pub const ALGO_ZSTD_CHUNKED: u8 = 2;
 /// Every block starts on a 16-byte boundary.
 pub const ALIGN: u64 = 16;
 
+/// Raw bytes per `zstd-chunked` frame. Compressing 256 KiB at a time keeps
+/// random access cheap without hurting the ratio much.
+pub const CHUNK_RAW: usize = 256 * 1024;
+
+/// Below this size zstd's frame header costs more than it saves.
+pub const ZSTD_MIN: usize = 64;
+
 const OFF_MERKLE: usize = 44;
 const OFF_SCHEMA: usize = 76;
 const OFF_SIG: usize = 108;

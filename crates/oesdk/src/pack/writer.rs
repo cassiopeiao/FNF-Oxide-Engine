@@ -13,6 +13,9 @@ pub struct Entry {
     pub stored: Vec<u8>,
     pub algo: u8,
     pub offset: u64,
+    /// `(raw_len, stored_len, stored_off relative to `offset`)` for chunked blocks.
+    pub chunks: Vec<(u32, u32, u64)>,
+    pub chunk_start: u32,
 }
 
 #[derive(Default)]
@@ -40,10 +43,12 @@ impl PackBuilder {
     /// better can use [`Self::add_with_algo`].
     pub fn add(&mut self, path: impl Into<String>, raw: Vec<u8>) -> Result<&mut Self, String> {
         let path = path.into();
-        let algo = if is_precompressed(&path) {
+        let algo = if raw.len() < ZSTD_MIN || is_precompressed(&path) {
             ALGO_STORE
         } else if is_text(&path) {
             ALGO_ZSTD
+        } else if raw.len() >= CHUNK_RAW {
+            ALGO_ZSTD_CHUNKED
         } else {
             ALGO_STORE
         };
@@ -63,10 +68,21 @@ impl PackBuilder {
         if self.entries.iter().any(|entry| entry.path == path) {
             return Err(format!("duplicate path in package: {path}"));
         }
+        let mut chunks = Vec::new();
         let stored = match algo {
             ALGO_STORE => raw.clone(),
             ALGO_ZSTD => zstd::stream::encode_all(raw.as_slice(), self.zstd_level)
                 .map_err(|error| format!("zstd failed for {path}: {error}"))?,
+            ALGO_ZSTD_CHUNKED => {
+                let mut stored = Vec::with_capacity(raw.len());
+                for piece in raw.chunks(CHUNK_RAW) {
+                    let frame = zstd::stream::encode_all(piece, 9)
+                        .map_err(|error| format!("zstd failed for {path}: {error}"))?;
+                    chunks.push((piece.len() as u32, frame.len() as u32, stored.len() as u64));
+                    stored.extend_from_slice(&frame);
+                }
+                stored
+            }
             _ => return Err(format!("unsupported algo {algo} for {path}")),
         };
         self.entries.push(Entry {
@@ -76,6 +92,8 @@ impl PackBuilder {
             stored,
             algo,
             offset: 0,
+            chunks,
+            chunk_start: 0,
         });
         Ok(self)
     }
@@ -86,10 +104,13 @@ impl PackBuilder {
 
         let mut out = vec![0u8; HEADER_LEN as usize];
         let mut cursor = HEADER_LEN as u64;
+        let mut chunk_count = 0u32;
         for entry in &mut self.entries {
             cursor = align_up(cursor, ALIGN);
             out.resize(cursor as usize, 0);
             entry.offset = cursor;
+            entry.chunk_start = chunk_count;
+            chunk_count += entry.chunks.len() as u32;
             out.extend_from_slice(&entry.stored);
             cursor += entry.stored.len() as u64;
         }
@@ -115,7 +136,7 @@ impl PackBuilder {
             toc_len: toc.len() as u64,
             toc_raw_len: toc_raw.len() as u64,
             block_count: self.entries.len() as u32,
-            chunk_count: 0,
+            chunk_count,
             merkle_root,
             schema_hash: self.schema_hash,
             ..Header::new()
@@ -146,15 +167,26 @@ impl PackBuilder {
             blocks.extend_from_slice(&(entry.stored.len() as u64).to_le_bytes());
             blocks.extend_from_slice(&(entry.raw.len() as u64).to_le_bytes());
             blocks.extend_from_slice(&crc32c(&entry.raw).to_le_bytes());
-            blocks.extend_from_slice(&0u32.to_le_bytes());
+            blocks.extend_from_slice(&entry.chunk_start.to_le_bytes());
         }
+
+        let mut chunks = Vec::new();
+        for entry in &self.entries {
+            for (raw_len, stored_len, stored_off) in &entry.chunks {
+                chunks.extend_from_slice(&raw_len.to_le_bytes());
+                chunks.extend_from_slice(&stored_len.to_le_bytes());
+                chunks.extend_from_slice(&stored_off.to_le_bytes());
+            }
+        }
+        let chunk_count: u32 = self.entries.iter().map(|e| e.chunks.len() as u32).sum();
 
         let mut toc = Vec::new();
         toc.extend_from_slice(&1u32.to_le_bytes());
         toc.extend_from_slice(&(self.entries.len() as u32).to_le_bytes());
-        toc.extend_from_slice(&0u32.to_le_bytes());
+        toc.extend_from_slice(&chunk_count.to_le_bytes());
         toc.extend_from_slice(&(strings.len() as u32).to_le_bytes());
         toc.extend_from_slice(&blocks);
+        toc.extend_from_slice(&chunks);
         toc.extend_from_slice(&strings);
         toc
     }
@@ -199,6 +231,35 @@ mod tests {
         assert_eq!(pack.entries().len(), 2);
         assert!(pack.verify_signature(&key.verifying_key()).is_ok());
         assert_eq!(pack.read("mod.wasm").unwrap(), vec![1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn tiny_files_are_stored() {
+        let mut builder = PackBuilder::new();
+        builder.add("a.json", b"{}".to_vec()).unwrap();
+        let bytes = builder.finish(None).unwrap();
+        let pack = Pack::parse(&bytes).unwrap();
+        let entry = pack.entry("a.json").unwrap();
+        assert_eq!(entry.algo, ALGO_STORE);
+        assert_eq!(entry.stored_len, entry.raw_len);
+    }
+
+    #[test]
+    fn large_files_are_chunked_and_random_readable() {
+        let payload: Vec<u8> = (0..700_000u32).map(|value| (value % 251) as u8).collect();
+        let mut builder = PackBuilder::new();
+        builder.add("big.bin", payload.clone()).unwrap();
+        let bytes = builder.finish(None).unwrap();
+        let pack = Pack::parse(&bytes).unwrap();
+        let entry = pack.entry("big.bin").unwrap();
+        assert_eq!(entry.algo, ALGO_ZSTD_CHUNKED);
+        assert!(pack.header().chunk_count >= 2);
+        assert_eq!(pack.read("big.bin").unwrap(), payload);
+
+        // touch only the second chunk
+        let start = CHUNK_RAW + 100;
+        let slice = pack.read_chunked(entry, start, 32).unwrap();
+        assert_eq!(slice, payload[start..start + 32]);
     }
 
     #[test]
