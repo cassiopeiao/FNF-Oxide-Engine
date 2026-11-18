@@ -138,3 +138,8 @@ Notes:
 
 See [docs/modding-api.md](docs/modding-api.md) for the stage / character /
 song / module contracts modelled on the FNF 0.8 `.hxc` scripted-class API.
+
+## Content schema
+
+See [`docs/content-schema.md`](docs/content-schema.md): every JSON registry in the
+original game mapped to a TOML file with identical field names.
