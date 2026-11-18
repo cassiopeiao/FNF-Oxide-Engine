@@ -1,6 +1,7 @@
 //! Minimal `.fnfm` tool: pack / verify / list.
 
 use ed25519_dalek::{SigningKey, VerifyingKey};
+use oesdk::content;
 use oesdk::pack::{reader::Pack, writer::PackBuilder};
 use std::path::{Path, PathBuf};
 
@@ -55,10 +56,36 @@ fn main() {
                 .and_then(|index| args.get(index + 1))
                 .map(|hex| parse_seed(hex));
 
+            let mut compiled = Vec::new();
+            let content_dir = Path::new(dir).join("content");
+            if content_dir.is_dir() {
+                match content::compile(&content_dir) {
+                    Ok(items) => {
+                        for item in items {
+                            println!("compiled {} ({} bytes)", item.path, item.bytes.len());
+                            compiled.push(item);
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("content error: {error}");
+                        std::process::exit(1);
+                    }
+                }
+            }
+
             let mut files = Vec::new();
             walk(Path::new(dir), Path::new(""), &mut files).expect("walk failed");
             let mut builder = PackBuilder::new();
+            for item in &compiled {
+                builder
+                    .add(item.path.clone(), item.bytes.clone())
+                    .expect("add failed");
+            }
             for (name, path) in &files {
+                // TOML sources are compiled above; ship only the protobuf.
+                if name.starts_with("content/") && name.ends_with(".toml") {
+                    continue;
+                }
                 builder
                     .add(name.clone(), std::fs::read(path).expect("read failed"))
                     .expect("add failed");

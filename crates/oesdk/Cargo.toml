@@ -29,6 +29,9 @@ default = []
 guest = []
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "1.2"
+prost = "0.14"
 sha2 = "0.10"
 zstd = { version = "0.13", default-features = false }
 crc32fast = "1.5"
