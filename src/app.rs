@@ -1,10 +1,12 @@
 //! Application assembly shared by desktop, Android and iOS.
 
-use bevy::asset::AssetPlugin;
+use bevy::asset::io::AssetSourceBuilder;
+use bevy::asset::{AssetApp, AssetPlugin};
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{Screenshot, save_to_disk};
 use bevy::window::{PresentMode, WindowResolution};
 
+use oxide_core::mods::{ModReader, ModRegistry, ModsPlugin, mods_dir};
 use oxide_core::theme::BG;
 use oxide_core::{AppState, CorePlugin};
 use oxide_data::OxideDataPlugin;
@@ -72,8 +74,22 @@ fn log_asset_root(root: Res<AssetRoot>) {
 pub fn run() {
     let assets = asset_root();
 
-    App::new()
-        .insert_resource(AssetRoot(assets.clone()))
+    let registry = ModRegistry::scan(&mods_dir());
+    info!(
+        "mod source: {} package(s) under {}",
+        registry.len(),
+        mods_dir().display()
+    );
+
+    let source_registry = registry.clone();
+    let mut app = App::new();
+    // Must be registered before `AssetPlugin::build` creates the sources.
+    app.register_asset_source(
+        "mod",
+        AssetSourceBuilder::new(move || Box::new(ModReader::new(source_registry.clone()))),
+    );
+
+    app.insert_resource(AssetRoot(assets.clone()))
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
@@ -94,7 +110,14 @@ pub fn run() {
         )
         .insert_resource(ClearColor(BG))
         .init_state::<AppState>()
-        .add_plugins((CorePlugin, OxideDataPlugin, GamePlugin, UiPlugin, ModPlugin))
+        .add_plugins((
+            CorePlugin,
+            OxideDataPlugin,
+            GamePlugin,
+            UiPlugin,
+            ModPlugin,
+            ModsPlugin { registry },
+        ))
         .add_systems(Startup, log_asset_root)
         .add_systems(Update, (debug_start_state, debug_screenshot))
         .run();

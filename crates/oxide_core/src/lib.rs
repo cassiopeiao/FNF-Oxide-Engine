@@ -5,6 +5,7 @@ pub mod animate_asset;
 pub mod assets;
 pub mod conductor;
 pub mod config;
+pub mod mods;
 pub mod plugin;
 pub mod raw_json;
 pub mod save;

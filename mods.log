@@ -1,0 +1,82 @@
+2026-11-18T15:07:50.972025Z  INFO bevy_diagnostic::system_information_diagnostics_plugin::internal: SystemInfo { os: "Linux (Ubuntu 26.04)", kernel: "7.0.0-43-generic", cpu: "12th Gen Intel(R) Core(TM) i7-12700H", core_count: "14", memory: "15.4 GiB" }
+2026-11-18T15:07:51.099426Z  INFO bevy_render::renderer: AdapterInfo { name: "llvmpipe (LLVM 21.1.8, 256 bits)", vendor: 65541, device: 0, device_type: Cpu, device_pci_bus_id: "", driver: "llvmpipe", driver_info: "Mesa 26.0.8-1ubuntu0.3 (LLVM 21.1.8)", backend: Vulkan, subgroup_min_size: 8, subgroup_max_size: 8, transient_saves_memory: Some(false), limit_bucket: None }
+2026-11-18T15:07:51.099455Z  WARN bevy_render::renderer: The selected adapter is using a driver that only supports software rendering. This is likely to be very slow. See https://bevy.org/learn/errors/b0006/
+Failed to create /home/yellowriver/.cache/mesa_shader_cache for shader cache (Read-only file system)---disabling.
+2026-11-18T15:07:51.230184Z  INFO oxide_core::plugin: FNF: Oxide Engine — settings file: /home/yellowriver/.local/share/fnf-oxide/settings.json
+2026-11-18T15:07:51.230332Z  INFO oxide_data::catalog: Loaded 27 built-in songs
+2026-11-18T15:07:51.230608Z  INFO oxide_mod_runtime::plugin: mod runtime ready (ABI 0.1.0, 0 mods loaded)
+2026-11-18T15:07:51.230632Z  INFO oxide_core::mods: mod source: smoke-loading mod://demo/icon.png
+2026-11-18T15:07:51.231084Z  INFO bevy_winit::system: Creating new window Friday Night Funkin': Oxide Engine (69v0)
+2026-11-18T15:07:51.333740Z  WARN sctk_adwaita::buttons: Ignoring unknown button type: 
+2026-11-18T15:07:51.337172Z  INFO fnf_oxide_engine::app: asset root: /home/yellowriver/develop/rust/FNF-Oxide-Engine/assets
+2026-11-18T15:07:51.340272Z  INFO oxide_core::mods: mod source: loaded 300x150 image from a package
+2026-11-18T15:07:51.359483Z  INFO bevy_render::batching::gpu_preprocessing: GPU preprocessing is fully supported on this device.
+2026-11-18T15:07:51.506169Z ERROR bevy_render::error_handler: Caught rendering error: Validation Error
+
+Caused by:
+  In Device::create_texture, label = 'main_texture_sampled'
+    Sample count 2 is not supported by format Rgba8UnormSrgb on this device. The WebGPU spec guarantees [1, 4] samples are supported by this format. With the TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES feature your device supports [1, 4, 8].
+
+2026-11-18T15:07:51.506196Z ERROR bevy_render::error_handler: Caught rendering error: Validation Error
+
+Caused by:
+  In Texture::create_view
+    Texture with 'main_texture_sampled' label is invalid
+
+2026-11-18T15:07:51.506391Z ERROR bevy_render::error_handler: Caught rendering error: Validation Error
+
+Caused by:
+  In Device::create_texture, label = 'view_depth_texture'
+    Sample count 2 is not supported by format Depth32Float on this device. The WebGPU spec guarantees [1, 4] samples are supported by this format. With the TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES feature your device supports [1, 4, 8].
+
+2026-11-18T15:07:51.506405Z ERROR bevy_render::error_handler: Caught rendering error: Validation Error
+
+Caused by:
+  In Texture::create_view
+    Texture with 'view_depth_texture' label is invalid
+
+2026-11-18T15:07:51.506413Z ERROR bevy_render::error_handler: Caught rendering error: Validation Error
+
+Caused by:
+  In Texture::create_view
+    Texture with 'view_depth_texture' label is invalid
+
+2026-11-18T15:07:51.508113Z ERROR bevy_render::error_handler: Caught rendering error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'bevy_core_pipeline::core_2d::main_opaque_pass_2d_node::main_opaque_pass_2d'
+    In a pass parameter
+      TextureView with '' label is invalid
+
+2026-11-18T15:07:51.508892Z ERROR bevy_render::error_handler: Caught rendering error: Validation Error
+
+Caused by:
+  In Queue::submit
+    In a pass parameter
+      TextureView with '' label is invalid
+
+2026-11-18T15:07:51.625248Z ERROR bevy_render::error_handler: Quitting the application due to Validation RenderError
+2026-11-18T15:07:51.694894Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694921Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694925Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694928Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694930Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694932Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694937Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694948Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694950Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694953Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694955Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694958Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694963Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694970Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694972Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694974Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694988Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.694991Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.695001Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.695003Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.695010Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.695014Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.695019Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
+2026-11-18T15:07:51.695040Z  WARN bevy_ecs::world::command_queue: CommandQueue has un-applied commands being dropped. Did you forget to call SystemState::apply?
