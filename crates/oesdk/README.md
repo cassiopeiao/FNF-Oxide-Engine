@@ -133,3 +133,8 @@ Notes:
 - Keep the crates.io token scoped to `publish-new` + `publish-update` for this
   crate only, and store it in `~/.cargo/credentials.toml` rather than in the
   repo.
+
+## Modding API design
+
+See [docs/modding-api.md](docs/modding-api.md) for the stage / character /
+song / module contracts modelled on the FNF 0.8 `.hxc` scripted-class API.
