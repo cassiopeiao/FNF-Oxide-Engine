@@ -29,6 +29,10 @@ default = []
 guest = []
 
 [dependencies]
+sha2 = "0.10"
+zstd = { version = "0.13", default-features = false }
+crc32fast = "1.5"
+ed25519-dalek = { version = "2.2", features = ["std"] }
 
 [package.metadata.docs.rs]
 all-features = true

@@ -7,17 +7,17 @@ All offsets are absolute from the start of the file. Unknown `flags` bits or a
 ## 1. Layout
 
 ```
-+0      header (128 B)
++0      header (176 B)
 +128    block data, each block 16-byte aligned
 ...     TOC (zstd frame, decompresses to BlockTable + StringTable)
 ...     signature is in the header (no trailing bytes)
 ```
 
 ```
-struct Header {            // 128 bytes, repr(C)
+struct Header {            // 176 bytes (172 used, 4 reserved)
   magic:        [u8; 4] = b"FNFM",
   format_ver:   u16 = 1,      // major in high byte, minor in low byte
-  header_len:   u16 = 128,
+  header_len:   u16 = 176,
   flags:        u32,          // bit0 signed, bit1 toc_compressed, rest reserved
   toc_off:      u64,
   toc_len:      u64,          // bytes on disk (compressed)
@@ -29,16 +29,14 @@ struct Header {            // 128 bytes, repr(C)
   signature:    [u8; 64],     // Ed25519, zero when unsigned
 }
 ```
-128 = 4+2+2+4+8*3+4*2+32*2+64 exactly, so the block area always starts aligned.
+172 = 4+2+2+4+8*3+4*2+32*2+64; four reserved bytes pad it to 176 so the block area starts 16-byte aligned.
 
 ## 2. Block data
 
 Each file is one block. `data_off` is 16-byte aligned; padding bytes are zero.
 
-```
-Compression (header of a block, stored inside the block):
-  algo: u8   0 = store, 1 = zstd, 2 = zstd-chunked
-```
+The algorithm is a byte of the block record (`algo`, byte 7), never a prefix of
+the block data: `0 = store`, `1 = zstd`, `2 = zstd-chunked`.
 
 - `store` — bytes are the raw file. Used for already-compressed data: ogg, mp3,
   mp4, png/jpeg when it is imported verbatim.
@@ -78,7 +76,7 @@ struct Block {              // 40 bytes
   path_off:   u32,          // into StringTable
   path_len:   u16,
   kind:       u8,           // 0 proto, 1 image_rgba, 2 audio, 3 raw, 4 manifest
-  flags:      u8,           // bit0 executable? reserved, must be 0
+  algo:       u8,           // 0 store, 1 zstd, 2 zstd-chunked
   data_off:   u64,
   stored_len: u64,
   raw_len:    u64,
