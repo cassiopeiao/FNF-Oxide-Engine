@@ -93,7 +93,7 @@ impl Header {
         if bytes.len() < HEADER_LEN as usize {
             return Err("file shorter than the header".into());
         }
-        if &bytes[0..4] != MAGIC {
+        if bytes[0..4] != MAGIC {
             return Err("not a .fnfm package (bad magic)".into());
         }
         let format_ver = u16::from_le_bytes([bytes[4], bytes[5]]);
