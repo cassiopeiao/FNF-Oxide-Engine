@@ -76,16 +76,10 @@ impl<'a> Pack<'a> {
         let entry = self
             .entry(path)
             .ok_or_else(|| format!("no such entry: {path}"))?;
-        let start = entry.offset as usize;
-        let end = start + entry.stored_len as usize;
-        let raw = match entry.algo {
-            ALGO_STORE => self.bytes[start..end].to_vec(),
-            ALGO_ZSTD => zstd::stream::decode_all(&self.bytes[start..end])
-                .map_err(|error| format!("cannot decompress {path}: {error}"))?,
-            ALGO_ZSTD_CHUNKED => self
-                .read_chunked(entry, 0, entry.raw_len as usize)
-                .map_err(|error| format!("{path}: {error}"))?,
-            other => return Err(format!("{path}: unsupported algorithm {other}")),
+        let raw = if entry.algo == ALGO_ZSTD_CHUNKED {
+            self.read_chunked(entry, 0, entry.raw_len as usize)?
+        } else {
+            decode_block(self.bytes, entry)?
         };
         if raw.len() as u64 != entry.raw_len {
             return Err(format!("{path}: length mismatch"));
@@ -167,6 +161,21 @@ impl<'a> Pack<'a> {
         trusted
             .verify(&sign_message(&computed), &signature)
             .map_err(|_| "signature does not match the package".to_string())
+    }
+}
+
+/// Decodes one `store`/`zstd` block without a `Pack`. Callers that cache TOC
+/// entries use this to skip parsing the TOC on every read.
+pub fn decode_block(bytes: &[u8], entry: &Entry) -> Result<Vec<u8>, String> {
+    let start = entry.offset as usize;
+    let end = start + entry.stored_len as usize;
+    let slice = bytes.get(start..end).ok_or("block is out of bounds")?;
+    match entry.algo {
+        ALGO_STORE => Ok(slice.to_vec()),
+        ALGO_ZSTD => {
+            zstd::stream::decode_all(slice).map_err(|error| format!("cannot decompress: {error}"))
+        }
+        other => Err(format!("algorithm {other} needs the pack (chunked blocks)")),
     }
 }
 

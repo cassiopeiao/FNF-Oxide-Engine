@@ -1,6 +1,6 @@
 [package]
 name = "oesdk"
-version = "0.0.1"
+version = "0.0.0"
 # Pinned explicitly: this crate is published on its own, so it must not
 # inherit the engine's MSRV.
 edition = "2024"

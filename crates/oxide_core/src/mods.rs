@@ -5,13 +5,14 @@
 //! `foo.png` out of it. Only `store` and `zstd` blocks are decoded here;
 //! chunked blocks go through the same path for now.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use bevy::asset::io::{AssetReader, AssetReaderError, PathStream, Reader, VecReader};
 use bevy::prelude::*;
 
-use oesdk::pack::reader::Pack;
+use oesdk::pack::reader::{Entry, Pack, decode_block};
 
 /// Everything mounted under `mod://`.
 #[derive(Resource, Clone, Default)]
@@ -23,12 +24,66 @@ pub struct ModRegistry {
 struct MountedPack {
     id: String,
     bytes: Arc<Vec<u8>>,
+    /// TOC entries, parsed once: path -> block descriptor.
+    blocks: Arc<HashMap<String, Entry>>,
+}
+
+/// `mods/trusted.pub`: one hex Ed25519 public key (comments and whitespace ok).
+fn load_trusted_key(dir: &Path) -> Option<ed25519_dalek::VerifyingKey> {
+    let text = std::fs::read_to_string(dir.join("trusted.pub")).ok()?;
+    let hex: String = text
+        .lines()
+        .filter(|line| !line.trim_start().starts_with('#'))
+        .flat_map(|line| line.chars())
+        .filter(|ch| ch.is_ascii_hexdigit())
+        .collect();
+    if hex.len() != 64 {
+        warn!("mod source: trusted.pub must hold a 32-byte hex key");
+        return None;
+    }
+    let mut bytes = [0u8; 32];
+    for (index, byte) in bytes.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&hex[index * 2..index * 2 + 2], 16).ok()?;
+    }
+    ed25519_dalek::VerifyingKey::from_bytes(&bytes).ok()
+}
+
+/// Policy: unsigned packages are refused unless `FNF_OXIDE_ALLOW_UNSIGNED=1`.
+fn verify(
+    header: &oesdk::pack::Header,
+    _bytes: &[u8],
+    trusted: &Option<ed25519_dalek::VerifyingKey>,
+) -> Result<(), String> {
+    let allow_unsigned = std::env::var_os("FNF_OXIDE_ALLOW_UNSIGNED").is_some();
+    let signed = header.flags & oesdk::pack::FLAG_SIGNED != 0;
+    if !signed {
+        return if allow_unsigned {
+            Ok(())
+        } else {
+            Err("package is not signed (set FNF_OXIDE_ALLOW_UNSIGNED=1 for development)".into())
+        };
+    }
+    let Some(key) = trusted else {
+        return if allow_unsigned {
+            Ok(())
+        } else {
+            Err("signed package, but mods/trusted.pub is missing".into())
+        };
+    };
+    // Re-parse for the full walk; verification needs every block anyway.
+    match Pack::parse(_bytes) {
+        Ok(pack) => pack
+            .verify_signature(key)
+            .map_err(|error| format!("signature check failed: {error}")),
+        Err(error) => Err(error),
+    }
 }
 
 impl ModRegistry {
     /// Scans `dir` for `*.fnfm`, reading each package's TOC once to validate it.
     pub fn scan(dir: &Path) -> Self {
         let mut packs = Vec::new();
+        let trusted = load_trusted_key(dir);
         let Ok(entries) = std::fs::read_dir(dir) else {
             return Self::default();
         };
@@ -48,12 +103,21 @@ impl ModRegistry {
                                 .file_stem()
                                 .map(|stem| stem.to_string_lossy().into_owned())
                                 .unwrap_or_default();
-                            info!(
-                                "mod source: mounted {} ({} entries)",
+                            if let Err(reason) = verify(pack.header(), &bytes, &trusted) {
+                                warn!("mod source: skipping {id}: {reason}");
+                                continue;
+                            }
+                            let blocks: HashMap<String, Entry> = pack
+                                .entries()
+                                .iter()
+                                .map(|entry| (entry.path.clone(), entry.clone()))
+                                .collect();
+                            info!("mod source: mounted {} ({} entries)", id, blocks.len());
+                            packs.push(MountedPack {
                                 id,
-                                pack.entries().len()
-                            );
-                            packs.push(MountedPack { id, bytes });
+                                bytes,
+                                blocks: Arc::new(blocks),
+                            });
                         }
                         Err(error) => warn!("mod source: skipping {}: {error}", path.display()),
                     }
@@ -82,8 +146,13 @@ impl ModRegistry {
         let text = path.to_string_lossy();
         let (id, rest) = text.split_once('/')?;
         let pack = self.packs.iter().find(|pack| pack.id == id)?;
-        let parsed = Pack::parse(&pack.bytes).ok()?;
-        parsed.read(rest).ok()
+        let entry = pack.blocks.get(rest)?;
+        if entry.algo == 2 {
+            // chunked: keep the slow path until the texture fast path exists
+            let parsed = Pack::parse(&pack.bytes).ok()?;
+            return parsed.read(rest).ok();
+        }
+        decode_block(&pack.bytes, entry).ok()
     }
 }
 
