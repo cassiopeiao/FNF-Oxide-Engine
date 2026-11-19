@@ -1,0 +1,11 @@
+[package]
+name = "oesdk_api"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Stable ABI types shared by the Oxide Engine mod SDK and its runtime"
+repository = "https://github.com/FunkinRustUp/FNF-Oxide-Engine"
+publish = false
+
+[dependencies]

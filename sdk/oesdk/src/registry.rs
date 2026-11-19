@@ -30,18 +30,3 @@ pub fn dispatch(m: &mut dyn Mod, callback: &str, ctx: &mut Ctx<'_>, payload: Pay
         _ => {}
     }
 }
-
-/// Expands into the symbols the wasm guest glue calls.
-///
-/// ```ignore
-/// oesdk::register_mod!(MyMod);
-/// ```
-#[macro_export]
-macro_rules! register_mod {
-    ($ty:ty) => {
-        #[doc(hidden)]
-        pub fn __oesdk_make_mod() -> Box<dyn $crate::Mod> {
-            Box::new(<$ty as ::core::default::Default>::default())
-        }
-    };
-}

@@ -4619,15 +4619,38 @@ dependencies = [
 
 [[package]]
 name = "oesdk"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "crc32fast",
  "ed25519-dalek",
+ "oesdk_api",
+ "oesdk_macro",
  "prost",
  "serde",
  "sha2",
  "toml",
  "zstd",
+]
+
+[[package]]
+name = "oesdk_api"
+version = "0.1.0"
+
+[[package]]
+name = "oesdk_cli"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+ "oesdk",
+]
+
+[[package]]
+name = "oesdk_macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]
