@@ -21,7 +21,6 @@ impl fnf::mods::core::Host for HostState {
             _ => "debug",
         };
         bevy::log::info!("[mod:{tag}] {msg}");
-        ()
     }
 
     fn play_state(&mut self) -> (String, String, f32, u32, u32, u32, f32, f32, u32, u8) {
@@ -73,22 +72,18 @@ impl fnf::mods::core::Host for HostState {
             x: pos.x,
             y: pos.y,
         });
-        ()
     }
 
     fn set_character_opacity(&mut self, id: u32, alpha: f32) -> () {
         self.commands.push(ModCommand::SetAlpha { id, alpha });
-        ()
     }
 
     fn set_character_flip(&mut self, id: u32, flip: bool) -> () {
         self.commands.push(ModCommand::SetFlip { id, flip });
-        ()
     }
 
     fn play_anim(&mut self, id: u32, anim: String) -> () {
         self.commands.push(ModCommand::PlayAnimById { id, anim });
-        ()
     }
 }
 
@@ -96,13 +91,11 @@ impl fnf::mods::camera::Host for HostState {
     fn shake(&mut self, intensity: f32, seconds: f32) -> () {
         self.commands
             .push(ModCommand::CameraShake { intensity, seconds });
-        ()
     }
 
     fn flash(&mut self, rgba: u32, seconds: f32) -> () {
         self.commands
             .push(ModCommand::CameraFlash { rgba, seconds });
-        ()
     }
 }
 
@@ -121,7 +114,6 @@ impl fnf::mods::sprites::Host for HostState {
 
     fn despawn(&mut self, id: u32) -> () {
         self.commands.push(ModCommand::DespawnSprite { id });
-        ()
     }
 
     fn set_position(&mut self, id: u32, pos: Vec2) -> () {
@@ -130,7 +122,6 @@ impl fnf::mods::sprites::Host for HostState {
             x: pos.x,
             y: pos.y,
         });
-        ()
     }
 }
 
@@ -144,7 +135,6 @@ impl fnf::mods::audio::Host for HostState {
 
     fn stop(&mut self, id: u32) -> () {
         self.commands.push(ModCommand::StopSound { id });
-        ()
     }
 }
 
