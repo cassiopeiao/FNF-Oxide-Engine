@@ -61,12 +61,12 @@ impl fnf::mods::core::Host for HostState {
             .map(|info| info.id.0)
     }
 
-    fn character_position(&mut self, id: u32) -> Vec2 {
+    fn character_position(&mut self, _id: u32) -> Vec2 {
         let pos = oesdk::prelude::Vec2::default();
         Vec2 { x: pos.x, y: pos.y }
     }
 
-    fn set_character_position(&mut self, id: u32, pos: Vec2) -> () {
+    fn set_character_position(&mut self, id: u32, pos: Vec2) {
         self.commands.push(ModCommand::MoveCharacter {
             id,
             x: pos.x,
@@ -74,26 +74,26 @@ impl fnf::mods::core::Host for HostState {
         });
     }
 
-    fn set_character_opacity(&mut self, id: u32, alpha: f32) -> () {
+    fn set_character_opacity(&mut self, id: u32, alpha: f32) {
         self.commands.push(ModCommand::SetAlpha { id, alpha });
     }
 
-    fn set_character_flip(&mut self, id: u32, flip: bool) -> () {
+    fn set_character_flip(&mut self, id: u32, flip: bool) {
         self.commands.push(ModCommand::SetFlip { id, flip });
     }
 
-    fn play_anim(&mut self, id: u32, anim: String) -> () {
+    fn play_anim(&mut self, id: u32, anim: String) {
         self.commands.push(ModCommand::PlayAnimById { id, anim });
     }
 }
 
 impl fnf::mods::camera::Host for HostState {
-    fn shake(&mut self, intensity: f32, seconds: f32) -> () {
+    fn shake(&mut self, intensity: f32, seconds: f32) {
         self.commands
             .push(ModCommand::CameraShake { intensity, seconds });
     }
 
-    fn flash(&mut self, rgba: u32, seconds: f32) -> () {
+    fn flash(&mut self, rgba: u32, seconds: f32) {
         self.commands
             .push(ModCommand::CameraFlash { rgba, seconds });
     }
@@ -112,11 +112,11 @@ impl fnf::mods::sprites::Host for HostState {
         id
     }
 
-    fn despawn(&mut self, id: u32) -> () {
+    fn despawn(&mut self, id: u32) {
         self.commands.push(ModCommand::DespawnSprite { id });
     }
 
-    fn set_position(&mut self, id: u32, pos: Vec2) -> () {
+    fn set_position(&mut self, id: u32, pos: Vec2) {
         self.commands.push(ModCommand::MoveSprite {
             id,
             x: pos.x,
@@ -133,7 +133,7 @@ impl fnf::mods::audio::Host for HostState {
         id
     }
 
-    fn stop(&mut self, id: u32) -> () {
+    fn stop(&mut self, id: u32) {
         self.commands.push(ModCommand::StopSound { id });
     }
 }
@@ -160,7 +160,7 @@ impl ModInstance {
         // `ModWorld::add_to_linker` now wants a typed store-data accessor that
         // the generated code has not exposed yet, so instantiation is off until
         // that accessor is pinned down.
-        let mut linker: Linker<HostState> = Linker::new(engine);
+        let linker: Linker<HostState> = Linker::new(engine);
         let mut store = Store::new(engine, HostState::new());
         store.set_fuel(50_000_000)?;
         store.epoch_deadline_trap();
