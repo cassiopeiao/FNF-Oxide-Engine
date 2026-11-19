@@ -8,15 +8,14 @@ description = "Oxide Engine mod SDK: data types, Mod trait and event dispatch"
 repository = "https://github.com/cassiopeiao/FNF-Oxide-Engine"
 documentation = "https://docs.rs/oesdk"
 readme = "README.md"
-publish = false
 include = ["src/**", "wit/**", "examples/**", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [package.metadata.docs.rs]
 all-features = true
 
 [dependencies]
-oesdk_api = { path = "../oesdk_api" }
-oesdk_macro = { path = "../oesdk_macro" }
+oesdk_api = { version = "0.0.1", path = "../oesdk_api" }
+oesdk_macro = { version = "0.0.1", path = "../oesdk_macro" }
 serde = { version = "1", features = ["derive"] }
 toml = "1.2"
 prost = "0.14"

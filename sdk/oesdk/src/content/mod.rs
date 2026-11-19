@@ -332,6 +332,58 @@ pub struct Player {
     pub dj_asset: String,
     #[prost(int32, tag = "7")]
     pub char_select_position: i32,
+    #[prost(message, optional, tag = "8")]
+    pub fist_pump: Option<FistPump>,
+    #[prost(message, repeated, tag = "9")]
+    pub dj_animations: Vec<PropAnim>,
+    #[prost(map = "string, message", tag = "10")]
+    pub results: std::collections::HashMap<String, ResultTier>,
+    #[prost(map = "string, string", tag = "11")]
+    pub result_music: std::collections::HashMap<String, String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct FistPump {
+    #[prost(int32, tag = "1")]
+    pub intro_start: i32,
+    #[prost(int32, tag = "2")]
+    pub intro_end: i32,
+    #[prost(int32, tag = "3")]
+    pub loop_start: i32,
+    #[prost(int32, tag = "4")]
+    pub loop_end: i32,
+    #[prost(int32, tag = "5")]
+    pub intro_bad_start: i32,
+    #[prost(int32, tag = "6")]
+    pub intro_bad_end: i32,
+    #[prost(int32, tag = "7")]
+    pub loop_bad_start: i32,
+    #[prost(int32, tag = "8")]
+    pub loop_bad_end: i32,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct ResultTier {
+    #[prost(message, repeated, tag = "1")]
+    pub stickers: Vec<ResultSticker>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct ResultSticker {
+    #[prost(string, tag = "1")]
+    pub asset: String,
+    #[prost(string, tag = "2")]
+    pub render_type: String,
+    #[prost(string, tag = "3")]
+    pub start_label: String,
+    #[prost(string, tag = "4")]
+    pub loop_label: String,
+    #[prost(string, tag = "5")]
+    pub filter: String,
+    #[prost(int32, tag = "6")]
+    pub z_index: i32,
+    #[prost(float, repeated, tag = "7")]
+    pub offsets: Vec<f32>,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -485,6 +537,8 @@ struct PlayerFile {
     #[serde(default)]
     freeplay_dj: Option<DjFile>,
     #[serde(default)]
+    results: Option<ResultsFile>,
+    #[serde(default)]
     char_select: Option<SelectFile>,
 }
 
@@ -492,6 +546,66 @@ struct PlayerFile {
 struct DjFile {
     #[serde(default)]
     asset_path: String,
+    #[serde(default)]
+    fist_pump: Option<FistPumpFile>,
+    #[serde(default)]
+    animations: Vec<PropAnimFile>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FistPumpFile {
+    #[serde(default)]
+    intro_start_frame: i32,
+    #[serde(default)]
+    intro_end_frame: i32,
+    #[serde(default)]
+    loop_start_frame: i32,
+    #[serde(default)]
+    loop_end_frame: i32,
+    #[serde(default)]
+    intro_bad_start_frame: i32,
+    #[serde(default)]
+    intro_bad_end_frame: i32,
+    #[serde(default)]
+    loop_bad_start_frame: i32,
+    #[serde(default)]
+    loop_bad_end_frame: i32,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct ResultsFile {
+    #[serde(default)]
+    music: std::collections::HashMap<String, String>,
+    #[serde(default, rename = "perfectGold")]
+    perfect_gold: Vec<StickerFile>,
+    #[serde(default)]
+    perfect: Vec<StickerFile>,
+    #[serde(default)]
+    excellent: Vec<StickerFile>,
+    #[serde(default)]
+    great: Vec<StickerFile>,
+    #[serde(default)]
+    good: Vec<StickerFile>,
+    #[serde(default)]
+    loss: Vec<StickerFile>,
+}
+
+#[derive(Debug, Deserialize)]
+struct StickerFile {
+    #[serde(default, rename = "renderType")]
+    render_type: String,
+    #[serde(default)]
+    asset_path: String,
+    #[serde(default)]
+    start_frame_label: String,
+    #[serde(default)]
+    loop_frame_label: String,
+    #[serde(default)]
+    filter: String,
+    #[serde(default)]
+    z_index: i32,
+    #[serde(default)]
+    offsets: Vec<f32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -746,17 +860,81 @@ pub fn compile(content: &Path) -> Result<Vec<Compiled>, String> {
             "players" => {
                 let file: PlayerFile = parse(&text, &path)?;
                 id_key = file.id.clone();
+                let dj = file.freeplay_dj;
+                let mut results = std::collections::HashMap::new();
+                let mut result_music = std::collections::HashMap::new();
+                if let Some(table) = file.results {
+                    result_music = table.music;
+                    for (tier, stickers) in [
+                        ("perfectGold", table.perfect_gold),
+                        ("perfect", table.perfect),
+                        ("excellent", table.excellent),
+                        ("great", table.great),
+                        ("good", table.good),
+                        ("loss", table.loss),
+                    ] {
+                        if stickers.is_empty() {
+                            continue;
+                        }
+                        results.insert(
+                            tier.to_owned(),
+                            ResultTier {
+                                stickers: stickers
+                                    .into_iter()
+                                    .map(|sticker| ResultSticker {
+                                        asset: sticker.asset_path,
+                                        render_type: sticker.render_type,
+                                        start_label: sticker.start_frame_label,
+                                        loop_label: sticker.loop_frame_label,
+                                        filter: sticker.filter,
+                                        z_index: sticker.z_index,
+                                        offsets: sticker.offsets,
+                                    })
+                                    .collect(),
+                            },
+                        );
+                    }
+                }
                 Player {
                     id: file.id,
                     name: file.name,
                     owned_chars: file.owned_chars,
                     freeplay_style: file.freeplay_style,
                     sticker_pack: file.sticker_pack,
-                    dj_asset: file.freeplay_dj.map(|dj| dj.asset_path).unwrap_or_default(),
+                    dj_asset: dj
+                        .as_ref()
+                        .map(|dj| dj.asset_path.clone())
+                        .unwrap_or_default(),
                     char_select_position: file
                         .char_select
                         .map(|select| select.position)
                         .unwrap_or(0),
+                    fist_pump: dj
+                        .as_ref()
+                        .and_then(|dj| dj.fist_pump.as_ref())
+                        .map(|pump| FistPump {
+                            intro_start: pump.intro_start_frame,
+                            intro_end: pump.intro_end_frame,
+                            loop_start: pump.loop_start_frame,
+                            loop_end: pump.loop_end_frame,
+                            intro_bad_start: pump.intro_bad_start_frame,
+                            intro_bad_end: pump.intro_bad_end_frame,
+                            loop_bad_start: pump.loop_bad_start_frame,
+                            loop_bad_end: pump.loop_bad_end_frame,
+                        }),
+                    dj_animations: dj
+                        .map(|dj| dj.animations)
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(|anim| PropAnim {
+                            name: anim.name,
+                            prefix: anim.prefix,
+                            frame_rate: anim.frame_rate,
+                            frame_indices: anim.frame_indices,
+                        })
+                        .collect(),
+                    results,
+                    result_music,
                 }
                 .encode_to_vec()
             }

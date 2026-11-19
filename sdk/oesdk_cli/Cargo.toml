@@ -6,13 +6,14 @@ rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 description = "Command line tools for the Oxide Engine mod SDK"
 repository = "https://github.com/cassiopeiao/FNF-Oxide-Engine"
-publish = false
 
 [[bin]]
 name = "oesdk"
 path = "src/oesdk.rs"
 
+include = ["src/**", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
+
 [dependencies]
-oesdk = { path = "../oesdk" }
+oesdk = { version = "0.0.1", path = "../oesdk" }
 clap = { version = "4", features = ["derive"] }
 ed25519-dalek = { version = "2.2", features = ["std"] }

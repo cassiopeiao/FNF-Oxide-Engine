@@ -6,10 +6,11 @@ rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 description = "Proc macros for the Oxide Engine mod SDK"
 repository = "https://github.com/cassiopeiao/FNF-Oxide-Engine"
-publish = false
 
 [lib]
 proc-macro = true
+
+include = ["src/**", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [dependencies]
 proc-macro2 = "1"

@@ -6,6 +6,7 @@ rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 description = "Stable ABI types shared by the Oxide Engine mod SDK and its runtime"
 repository = "https://github.com/cassiopeiao/FNF-Oxide-Engine"
-publish = false
+
+include = ["src/**", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [dependencies]
