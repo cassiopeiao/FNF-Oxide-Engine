@@ -1,73 +1,226 @@
 //! `oesdk` — mod project tool for FNF: Oxide Engine.
 //!
-//! Scaffolding lives here so the contract (`oesdk::abi`, `wit/oesdk.wit`) and
-//! the tool that validates against it cannot drift apart.
+//! Single binary: scaffold, validate, and build `.fnfm` packages.
 
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use clap::{Parser, Subcommand};
+use ed25519_dalek::{SigningKey, VerifyingKey};
+
 use oesdk::abi;
+use oesdk::content;
 use oesdk::manifest::ModManifest;
+use oesdk::pack::{reader::Pack, writer::PackBuilder};
 
-const USAGE: &str = "\
-oesdk — FNF: Oxide Engine mod tool
+#[derive(Parser)]
+#[command(name = "oesdk", about = "FNF: Oxide Engine mod tool")]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
 
-USAGE:
-    oesdk <command> [options]
-
-COMMANDS:
-    new <dir>         scaffold a new mod project
-    inspect [dir]     print the parsed mod.toml
-    build [dir]       validate + plan a build (wasm compilation: TODO)
-    pack [dir]        package into .fnfm (TODO)
-    sign [dir]        sign a package with Ed25519 (TODO)
-    verify <file>     verify a package signature (TODO)
-    doctor            print ABI/toolchain information
-    help              show this message
-";
+#[derive(Subcommand)]
+enum Command {
+    /// Scaffold a new mod project
+    New { dir: PathBuf },
+    /// Print the parsed mod.toml
+    Inspect { dir: Option<PathBuf> },
+    /// Validate the project against the SDK ABI
+    Build { dir: Option<PathBuf> },
+    /// Print ABI and toolchain information
+    Doctor,
+    /// Compile content/ and pack a directory into a .fnfm
+    Pack {
+        dir: PathBuf,
+        #[arg(short, long)]
+        out: PathBuf,
+        /// Ed25519 seed as hex (32 bytes)
+        #[arg(long)]
+        seed: Option<String>,
+    },
+    /// List the entries in a package
+    List { file: PathBuf },
+    /// Verify a package signature
+    Verify {
+        file: PathBuf,
+        #[arg(long = "pub")]
+        public: String,
+    },
+    /// Print the verifying key for a seed
+    Pubkey {
+        #[arg(long)]
+        seed: String,
+    },
+}
 
 fn main() -> ExitCode {
-    let args: Vec<String> = env::args().skip(1).collect();
-    let Some(command) = args.first().map(String::as_str) else {
-        print!("{USAGE}");
-        return ExitCode::from(2);
-    };
-    let rest: Vec<&str> = args.iter().skip(1).map(String::as_str).collect();
-
-    match command {
-        "new" => match rest.first() {
-            Some(dir) => cmd_new(Path::new(dir)),
-            None => usage_error("`new` needs a directory"),
-        },
-        "inspect" => cmd_inspect(project_dir(rest.first().copied())),
-        "build" => cmd_build(project_dir(rest.first().copied())),
-        "pack" => not_yet("pack"),
-        "sign" => not_yet("sign"),
-        "verify" => not_yet("verify"),
-        "doctor" => cmd_doctor(),
-        "help" | "--help" | "-h" => {
-            print!("{USAGE}");
-            ExitCode::SUCCESS
-        }
-        other => usage_error(&format!("unknown command `{other}`")),
+    match Cli::parse().command {
+        Command::New { dir } => cmd_new(&dir),
+        Command::Inspect { dir } => cmd_inspect(dir.unwrap_or_else(|| PathBuf::from("."))),
+        Command::Build { dir } => cmd_build(dir.unwrap_or_else(|| PathBuf::from("."))),
+        Command::Doctor => cmd_doctor(),
+        Command::Pack { dir, out, seed } => cmd_pack(&dir, &out, seed.as_deref()),
+        Command::List { file } => cmd_list(&file),
+        Command::Verify { file, public } => cmd_verify(&file, &public),
+        Command::Pubkey { seed } => cmd_pubkey(&seed),
     }
 }
 
-fn usage_error(msg: &str) -> ExitCode {
-    eprintln!("error: {msg}\n");
-    eprint!("{USAGE}");
-    ExitCode::from(2)
+fn parse_seed(hex: &str) -> [u8; 32] {
+    let mut out = [0u8; 32];
+    for (index, byte) in hex.as_bytes().chunks(2).take(32).enumerate() {
+        out[index] = u8::from_str_radix(std::str::from_utf8(byte).unwrap_or("00"), 16).unwrap_or(0);
+    }
+    out
 }
 
-fn not_yet(cmd: &str) -> ExitCode {
-    eprintln!("oesdk: `{cmd}` is not implemented yet (skeleton only)");
-    ExitCode::from(3)
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn project_dir(arg: Option<&str>) -> PathBuf {
-    arg.map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."))
+fn walk(root: &Path, prefix: &Path, out: &mut Vec<(String, PathBuf)>) -> std::io::Result<()> {
+    let mut entries: Vec<_> = std::fs::read_dir(root)?.filter_map(Result::ok).collect();
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        let path = entry.path();
+        let rel = prefix.join(entry.file_name());
+        if path.is_dir() {
+            walk(&path, &rel, out)?;
+        } else {
+            out.push((rel.to_string_lossy().replace('\\', "/"), path));
+        }
+    }
+    Ok(())
+}
+
+fn cmd_pack(dir: &Path, out: &Path, seed: Option<&str>) -> ExitCode {
+    let mut compiled = Vec::new();
+    let content_dir = dir.join("content");
+    if content_dir.is_dir() {
+        match content::compile(&content_dir) {
+            Ok(items) => {
+                for item in items {
+                    println!("compiled {} ({} bytes)", item.path, item.bytes.len());
+                    compiled.push(item);
+                }
+            }
+            Err(error) => {
+                eprintln!("content error: {error}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    let mut files = Vec::new();
+    if let Err(error) = walk(dir, Path::new(""), &mut files) {
+        eprintln!("error: {error}");
+        return ExitCode::FAILURE;
+    }
+    let mut builder = PackBuilder::new();
+    for item in &compiled {
+        if let Err(error) = builder.add(item.path.clone(), item.bytes.clone()) {
+            eprintln!("error: {error}");
+            return ExitCode::FAILURE;
+        }
+    }
+    for (name, path) in &files {
+        if name.starts_with("content/") && name.ends_with(".toml") {
+            continue;
+        }
+        match std::fs::read(path) {
+            Ok(bytes) => {
+                if let Err(error) = builder.add(name.clone(), bytes) {
+                    eprintln!("error: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
+            Err(error) => {
+                eprintln!("error: {}: {error}", path.display());
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    let key = seed.map(|seed| SigningKey::from_bytes(&parse_seed(seed)));
+    match builder.finish(key.as_ref()) {
+        Ok(bytes) => match std::fs::write(out, &bytes) {
+            Ok(()) => {
+                println!(
+                    "packed {} file(s) -> {} ({} bytes)",
+                    files.len(),
+                    out.display(),
+                    bytes.len()
+                );
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("error: {}: {error}", out.display());
+                ExitCode::FAILURE
+            }
+        },
+        Err(error) => {
+            eprintln!("error: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn cmd_list(file: &Path) -> ExitCode {
+    let bytes = match std::fs::read(file) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            eprintln!("error: {}: {error}", file.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    let pack = match Pack::parse(&bytes) {
+        Ok(pack) => pack,
+        Err(error) => {
+            eprintln!("error: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    for entry in pack.entries() {
+        println!(
+            "{:>10} {:>10} {} {}",
+            entry.raw_len, entry.stored_len, entry.kind, entry.path
+        );
+    }
+    ExitCode::SUCCESS
+}
+
+fn cmd_verify(file: &Path, public: &str) -> ExitCode {
+    let bytes = match std::fs::read(file) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            eprintln!("error: {}: {error}", file.display());
+            return ExitCode::FAILURE;
+        }
+    };
+    let pack = match Pack::parse(&bytes) {
+        Ok(pack) => pack,
+        Err(error) => {
+            eprintln!("error: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let key = VerifyingKey::from_bytes(&parse_seed(public)).expect("bad key");
+    match pack.verify_signature(&key) {
+        Ok(()) => {
+            println!("ok: signature and Merkle root verified");
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("verify failed: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn cmd_pubkey(seed: &str) -> ExitCode {
+    let key = SigningKey::from_bytes(&parse_seed(seed));
+    println!("{}", hex(key.verifying_key().as_bytes()));
+    ExitCode::SUCCESS
 }
 
 fn cmd_new(dir: &Path) -> ExitCode {

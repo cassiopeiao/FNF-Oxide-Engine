@@ -1,21 +1,18 @@
 [package]
 name = "oesdk_cli"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2024"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 description = "Command line tools for the Oxide Engine mod SDK"
-repository = "https://github.com/FunkinRustUp/FNF-Oxide-Engine"
+repository = "https://github.com/cassiopeiao/FNF-Oxide-Engine"
 publish = false
 
 [[bin]]
 name = "oesdk"
 path = "src/oesdk.rs"
 
-[[bin]]
-name = "fnfm"
-path = "src/fnfm.rs"
-
 [dependencies]
 oesdk = { path = "../oesdk" }
+clap = { version = "4", features = ["derive"] }
 ed25519-dalek = { version = "2.2", features = ["std"] }

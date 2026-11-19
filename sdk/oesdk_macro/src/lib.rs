@@ -2,7 +2,7 @@
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Type};
+use syn::{Type, parse_macro_input};
 
 /// Exports the mod entry point the engine looks for in the wasm component.
 ///

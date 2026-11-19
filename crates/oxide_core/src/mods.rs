@@ -192,9 +192,10 @@ impl AssetReader for ModReader {
 
 /// Where packages are looked up: `FNF_OXIDE_MODS`, else `./mods`.
 pub fn mods_dir() -> PathBuf {
-    std::env::var_os("FNF_OXIDE_MODS")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("mods"))
+    if let Some(dir) = std::env::var_os("FNF_OXIDE_MODS") {
+        return PathBuf::from(dir);
+    }
+    crate::save::SaveStore::new().dir.join("mods")
 }
 
 /// Optional smoke test: `FNF_OXIDE_MOD_ASSET=mod://<id>/<path>`.

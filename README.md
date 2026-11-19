@@ -1,6 +1,6 @@
 # FNF: Oxide Engine
 
-用 **Rust + Bevy 0.20** 重构 *Friday Night Funkin'* 的引擎骨架。原版 Haxe/FlxGame 项目位于 `haxe/funkin`（FNF v0.8.7），本仓库是其 Rust 重写版。
+用 **Rust + Bevy 0.20** 重构 *Friday Night Funkin'* 的引擎骨架。
 
 当前阶段的目标是**能跑通的骨架**：
 
@@ -248,17 +248,6 @@ cargo run --bin OxideEngine
 - `FNF_OXIDE_AUTOPLAY`：在 Play 中自动命中玩家音符，方便拍角色动画/判定截图
 
 这些变量只在桌面端生效，不影响移动端。
-
-### 重新生成视觉素材
-
-```bash
-python3 tools/build_visual_assets.py
-```
-
-脚本读取 `haxe/funkin/assets/shared/images/characters/dad/`，把 Animate Atlas 烘焙为
-`assets/oxide/characters/dad.{png,xml}`，并裁出菜单图与角色图标。原版 `haxe/funkin` 需存在。
-
----
 
 ## License
 
