@@ -33,6 +33,34 @@ pub enum ModCommand {
         asset: String,
         volume: f32,
     },
+    MoveCharacter {
+        id: u32,
+        x: f32,
+        y: f32,
+    },
+    SetAlpha {
+        id: u32,
+        alpha: f32,
+    },
+    SetFlip {
+        id: u32,
+        flip: bool,
+    },
+    PlayAnimById {
+        id: u32,
+        anim: String,
+    },
+    DespawnSprite {
+        id: u32,
+    },
+    MoveSprite {
+        id: u32,
+        x: f32,
+        y: f32,
+    },
+    StopSound {
+        id: u32,
+    },
 }
 
 #[derive(Debug, Default)]
@@ -41,6 +69,8 @@ pub struct HostState {
     pub characters: Vec<CharacterInfo>,
     pub play: PlayState,
     pub rng_state: u64,
+    pub next_sprite: u32,
+    pub next_sound: u32,
 }
 
 impl HostState {

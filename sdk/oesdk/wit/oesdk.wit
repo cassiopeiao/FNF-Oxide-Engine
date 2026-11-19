@@ -1,6 +1,6 @@
 // The single source of truth for the mod ABI.
 // Rust, C/C++ and TypeScript shells are all generated from this file.
-package fnf:mod@0.1.0;
+package fnf:mods@0.1.0;
 
 interface types {
   record vec2 { x: f32, y: f32 }
@@ -56,7 +56,7 @@ interface camera {
 
 interface sprites {
   use types.{vec2};
-  spawn: func(asset: string, pos: vec2, layer: i32, alpha: f32) -> u32;
+  spawn: func(asset: string, pos: vec2, layer: s32, alpha: f32) -> u32;
   despawn: func(id: u32);
   set-position: func(id: u32, pos: vec2);
 }
@@ -82,7 +82,7 @@ interface callbacks {
   on-song-end: func();
 }
 
-world mod {
+world mod-world {
   import core;
   import camera;
   import sprites;

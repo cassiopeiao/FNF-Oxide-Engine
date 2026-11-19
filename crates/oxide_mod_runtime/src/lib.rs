@@ -11,6 +11,8 @@
 //! are wired; the typed `bindgen!` glue for imports/exports is the next step.
 
 pub mod engine;
+#[allow(dead_code)]
+pub mod glue;
 pub mod host;
 pub mod manifest;
 pub mod plugin;
